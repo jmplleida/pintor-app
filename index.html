@@ -288,6 +288,16 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 <div id="toast"></div>
 <div id="listen-overlay">🎤 Escoltant...</div>
 
+<!-- BLOCKED SCREEN -->
+<div id="blocked-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:none;align-items:center;justify-content:center;flex-direction:column;padding:32px;text-align:center;">
+  <div style="font-size:60px;margin-bottom:16px;" id="blocked-icon">🔒</div>
+  <h2 style="font-family:'DM Sans',sans-serif;color:#f0f0f8;font-size:20px;margin-bottom:10px;" id="blocked-title">App no disponible</h2>
+  <p style="color:#6b6b8a;font-size:14px;max-width:280px;line-height:1.5;" id="blocked-msg">Contacta amb La Botiga del Robert per activar la teva app.</p>
+  <div style="margin-top:24px;">
+    <a href="tel:973000392" style="background:#f5c800;color:#0a0a0f;padding:12px 24px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;display:inline-block;">📞 Trucar a Robert</a>
+  </div>
+</div>
+
 <!-- SETUP SCREEN -->
 <div id="setup-screen">
   <div class="setup-card">
@@ -312,11 +322,42 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       </div>
     </div>
     <div class="setup-field">
+      <label>CIF / NIF / DNI</label>
+      <div class="field-with-mic">
+        <input type="text" id="s-cif" placeholder="B12345678 / 12345678A" style="text-transform:uppercase">
+        <button class="mic-btn" onclick="vozSetup('s-cif',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Adreça de l'empresa</label>
+      <div class="field-with-mic">
+        <input type="text" id="s-adr" placeholder="Carrer Major 12, 25001 Lleida">
+        <button class="mic-btn" onclick="vozSetup('s-adr',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
       <label>Població</label>
       <div class="field-with-mic">
         <input type="text" id="s-pob" placeholder="Lleida, Tarragona...">
         <button class="mic-btn" onclick="vozSetup('s-pob',this)">🎤</button>
       </div>
+    </div>
+    <div class="setup-field">
+      <label>Email (per al pressupost)</label>
+      <div class="field-with-mic">
+        <input type="email" id="s-email" placeholder="joan@pintors.cat">
+        <button class="mic-btn" onclick="vozSetup('s-email',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Logo de l'empresa <span style="font-weight:400;color:#94a3b8">(opcional)</span></label>
+      <label for="s-logo" id="logo-label" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8fafc;border:2px dashed #e2e8f0;border-radius:10px;cursor:pointer;transition:border-color 0.2s;">
+        <span style="font-size:22px">📁</span>
+        <span style="font-size:13px;color:#64748b" id="logo-label-txt">Toca per seleccionar el logo</span>
+        <img id="logo-img" style="display:none;width:40px;height:40px;object-fit:contain;border-radius:6px;border:1px solid #e2e8f0;margin-left:auto;">
+      </label>
+      <input type="file" id="s-logo" accept="image/*" style="display:none" onchange="previewLogo(this)">
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">PNG, JPG o SVG · Màx 2MB · Apareixerà al membrete del PDF</div>
     </div>
     <div class="setup-field">
       <label>Especialitat</label>
@@ -487,13 +528,32 @@ function selColor(el) {
   selectedColor = el.getAttribute('data-color');
 }
 
+function previewLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if (file.size > 2*1024*1024) { showToast('⚠️ El logo és massa gran (màx 2MB)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._logoBase64 = e.target.result;
+    var img = document.getElementById('logo-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('logo-label-txt').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
 function crearApp() {
   var nom = document.getElementById('s-nom').value.trim();
   var tel = document.getElementById('s-tel').value.trim();
+  var cif = document.getElementById('s-cif').value.trim().toUpperCase();
+  var adr = document.getElementById('s-adr').value.trim();
   var pob = document.getElementById('s-pob').value.trim();
+  var email = document.getElementById('s-email').value.trim();
   var esp = document.getElementById('s-esp').value;
+  var logo = window._logoBase64 || null;
   if (!nom) { showToast('⚠️ Escriu el teu nom o empresa'); return; }
-  userData = { nom: nom, tel: tel, pob: pob, esp: esp, color: selectedColor };
+  userData = { nom: nom, tel: tel, cif: cif, adr: adr, pob: pob, email: email, esp: esp, color: selectedColor, logo: logo };
   localStorage.setItem('pintor_user', JSON.stringify(userData));
   iniciarApp();
 }
@@ -781,18 +841,46 @@ function generarPDF() {
   var color = userData ? userData.color : '#2563eb';
   var rgb = hexToRgb(color);
 
-  // Header band
+  // Header band — membrete complet
+  var headerH = 42;
   doc.setFillColor(rgb.r, rgb.g, rgb.b);
-  doc.rect(0, 0, W, 30, 'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(18); doc.setFont('helvetica','bold');
-  doc.text(userData ? userData.nom : 'Pressupostador', 14, 13);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  if (userData) doc.text(userData.esp + (userData.tel ? '  ·  ' + userData.tel : '') + (userData.pob ? '  ·  ' + userData.pob : ''), 14, 21);
-  doc.text('PRESSUPOST', W-14, 13, {align:'right'});
-  doc.text(new Date().toLocaleDateString('ca-ES'), W-14, 21, {align:'right'});
+  doc.rect(0, 0, W, headerH, 'F');
 
-  Y = 38;
+  // Logo si n'hi ha
+  var logoX = 14;
+  if (userData && userData.logo) {
+    try {
+      doc.addImage(userData.logo, 'JPEG', 14, 5, 28, 28);
+      logoX = 48;
+    } catch(e) { logoX = 14; }
+  }
+
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text(userData ? userData.nom : 'Pressupostador', logoX, 12);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  var line2parts = [];
+  if (userData && userData.esp) line2parts.push(userData.esp);
+  if (userData && userData.tel) line2parts.push('Tel: '+userData.tel);
+  if (line2parts.length) doc.text(line2parts.join('  ·  '), logoX, 19);
+  var line3parts = [];
+  if (userData && userData.adr) line3parts.push(userData.adr);
+  if (userData && userData.pob) line3parts.push(userData.pob);
+  if (line3parts.length) doc.text(line3parts.join('  ·  '), logoX, 25);
+  var line4parts = [];
+  if (userData && userData.cif) line4parts.push('CIF/NIF: '+userData.cif);
+  if (userData && userData.email) line4parts.push(userData.email);
+  if (line4parts.length) doc.text(line4parts.join('  ·  '), logoX, 31);
+
+  // Dreta: nº pressupost i data
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('PRESSUPOST', W-14, 12, {align:'right'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(new Date().toLocaleDateString('ca-ES'), W-14, 20, {align:'right'});
+  var presNum = 'PRE-' + Date.now().toString().slice(-6);
+  doc.text('Nº '+presNum, W-14, 27, {align:'right'});
+
+  Y = headerH + 8;
   doc.setTextColor(30,30,30);
 
   // Client
@@ -884,6 +972,80 @@ function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+</script>
+<!-- Firebase License Check -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, update } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC_PLACEHOLDER_REPLACE_WITH_YOUR_KEY",
+  authDomain: "lance-a99b4.firebaseapp.com",
+  databaseURL: "https://lance-a99b4-default-rtdb.europe-west1.firebasedatabase.io",
+  projectId: "lance-a99b4",
+  storageBucket: "lance-a99b4.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:000000000000000000"
+};
+
+// ID únic del pintor — s'assigna quan el pintor configura la seva app
+// La consola master busca per nom. Canvia aquest valor pel ID real assignat.
+const PINTOR_ID = localStorage.getItem('pintor_firebase_id') || null;
+
+if (!PINTOR_ID) {
+  // Primer accés: la consola assigna l'ID, o treballem offline
+  // Si no hi ha ID, l'app funciona en mode local
+  console.log('[PintorApp] Mode local — sense ID Firebase assignat');
+} else {
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const pintorRef = ref(db, 'pintorapp/pintores/' + PINTOR_ID);
+
+  onValue(pintorRef, function(snap) {
+    var data = snap.val();
+    if (!data) return; // No trobat, continua en mode local
+
+    // Comprova caducitat
+    var expired = false;
+    if (data.caducidad_meses > 0 && data.created_at) {
+      var created = new Date(data.created_at);
+      var expiry  = new Date(created);
+      expiry.setMonth(expiry.getMonth() + data.caducidad_meses);
+      expired = new Date() > expiry;
+    }
+
+    var activo = data.activo !== false && !expired;
+
+    if (!activo) {
+      // Bloqueja l'app
+      var bs = document.getElementById('blocked-screen');
+      bs.style.display = 'flex';
+      if (expired) {
+        document.getElementById('blocked-icon').textContent = '⏰';
+        document.getElementById('blocked-title').textContent = 'Llicència caducada';
+        document.getElementById('blocked-msg').textContent = 'La teva llicència ha caducat. Contacta amb La Botiga del Robert per renovar-la.';
+      } else {
+        document.getElementById('blocked-icon').textContent = '🔒';
+        document.getElementById('blocked-title').textContent = 'App desactivada';
+        document.getElementById('blocked-msg').textContent = (data.mensaje || 'Contacta amb La Botiga del Robert per activar la teva app.');
+      }
+      // Oculta l'app
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'none';
+    } else {
+      document.getElementById('blocked-screen').style.display = 'none';
+      // Mostra missatge si n'hi ha
+      if (data.mensaje) {
+        var t = document.getElementById('toast');
+        if (t) { t.textContent = '💬 ' + data.mensaje; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); }, 5000); }
+      }
+      // Sincronitza dades del pintor si coincideix
+      if (window.userData && data.nom === window.userData.nom) {
+        // Dades en sincronia
+      }
+    }
+  });
 }
 </script>
 </body>
