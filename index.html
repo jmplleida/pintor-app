@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pressupostador">
+<title>Pressupostador Pintor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --primary: #2563eb;
+  --accent: #f59e0b;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --robert-yellow: #f5c800;
+  --robert-blue: #003d8f;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* SETUP SCREEN */
+#setup-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.setup-card {
+  background: white; border-radius: 20px; padding: 32px 24px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.setup-logo {
+  text-align: center; margin-bottom: 24px;
+}
+.setup-logo .brush-icon {
+  font-size: 48px; display: block; margin-bottom: 8px;
+}
+.setup-logo h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; color: #0f172a;
+}
+.setup-logo p { color: #64748b; font-size: 14px; margin-top: 4px; }
+
+.setup-field { margin-bottom: 16px; }
+.setup-field label {
+  display: block; font-size: 13px; font-weight: 600;
+  color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.setup-field input, .setup-field select {
+  width: 100%; padding: 12px 14px;
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  font-size: 15px; font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.2s;
+  background: #f8fafc;
+}
+.setup-field input:focus, .setup-field select:focus {
+  outline: none; border-color: #2563eb; background: white;
+}
+
+.color-picker { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.color-opt {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  border: 3px solid transparent; transition: transform 0.2s, border-color 0.2s;
+  position: relative;
+}
+.color-opt.sel { border-color: #0f172a; transform: scale(1.15); }
+.color-opt.sel::after {
+  content: '✓'; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%); color: white; font-size: 14px; font-weight: 700;
+}
+
+.btn-create {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white; border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  margin-top: 8px; font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.3px; transition: transform 0.1s;
+}
+.btn-create:active { transform: scale(0.98); }
+
+.robert-setup {
+  text-align: center; margin-top: 20px; padding-top: 16px;
+  border-top: 2px solid #f5c800;
+}
+.robert-setup span { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+.robert-setup strong { display: block; font-size: 14px; color: #003d8f; font-weight: 700; margin-top: 2px; }
+
+/* MAIN APP */
+#main-app { display: none; }
+
+.app-header {
+  padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  min-height: 60px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-initials {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: white;
+  background: rgba(255,255,255,0.25);
+}
+.header-name { font-weight: 700; font-size: 15px; color: white; line-height: 1.1; }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.75); }
+.btn-settings {
+  background: rgba(255,255,255,0.2); border: none; color: white;
+  width: 36px; height: 36px; border-radius: 9px; font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+/* Robert sponsor bar */
+.robert-bar {
+  background: var(--robert-yellow);
+  display: flex; align-items: center; justify-content: center; gap-10px;
+  padding: 7px 16px; gap: 8px;
+}
+.robert-bar span { font-size: 11px; color: var(--robert-blue); font-weight: 600; }
+.robert-bar .rb-name { font-size: 13px; font-weight: 800; color: var(--robert-blue); }
+.robert-bar .rb-phone { font-size: 11px; color: var(--robert-blue); opacity: 0.8; }
+
+/* Content */
+.content { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; margin-top: 20px;
+}
+.section-title:first-child { margin-top: 0; }
+
+/* Client fields */
+.client-card {
+  background: var(--card); border-radius: 14px; padding: 16px;
+  box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.field-row { margin-bottom: 12px; }
+.field-row:last-child { margin-bottom: 0; }
+.field-row label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+.field-with-mic { display: flex; gap: 8px; align-items: center; }
+.field-with-mic input, .field-with-mic textarea {
+  flex: 1; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  background: #f8fafc; min-width: 0;
+  transition: border-color 0.2s;
+}
+.field-with-mic input:focus, .field-with-mic textarea:focus {
+  outline: none; border-color: var(--primary); background: white;
+}
+.field-with-mic textarea { min-height: 60px; resize: none; }
+.mic-btn {
+  width: 38px; height: 38px; border-radius: 9px; border: none;
+  background: #eff6ff; color: var(--primary); font-size: 17px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.2s;
+}
+.mic-btn.listening { background: #fee2e2; animation: pulse 0.8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Partides */
+.partida-card {
+  background: var(--card); border-radius: 14px; padding: 14px 16px;
+  box-shadow: var(--shadow); margin-bottom: 10px;
+  border-left: 4px solid var(--primary);
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.partida-top { display: flex; align-items: center; gap-8px; gap: 8px; margin-bottom: 10px; }
+.partida-name {
+  flex: 1; padding: 8px 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  background: #f8fafc; min-width: 0;
+}
+.partida-name:focus { outline: none; border-color: var(--primary); background: white; }
+.btn-del {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: #fee2e2; color: #ef4444; font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.partida-nums { display: flex; flex-direction: column; gap: 8px; }
+.num-row { display: flex; align-items: center; gap: 8px; }
+.num-row label { font-size: 12px; font-weight: 600; color: var(--muted); width: 48px; flex-shrink: 0; }
+.num-row input {
+  flex: 1; padding: 9px 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  background: #f8fafc; min-width: 0; text-align: right;
+}
+.num-row input:focus { outline: none; border-color: var(--primary); background: white; }
+.num-mic { width: 34px; height: 34px; border-radius: 8px; border: none; background: #eff6ff; color: var(--primary); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+.num-mic.listening { background: #fee2e2; animation: pulse 0.8s infinite; }
+
+.add-partida-btn {
+  width: 100%; padding: 13px;
+  background: white; border: 2px dashed var(--border);
+  border-radius: 12px; font-size: 14px; font-weight: 600;
+  color: var(--primary); cursor: pointer; margin-bottom: 16px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.add-partida-btn:hover { border-color: var(--primary); background: #eff6ff; }
+
+/* Summary */
+.summary-card {
+  background: var(--card); border-radius: 14px; padding: 16px;
+  box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.sum-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid var(--border); }
+.sum-row:last-child { border-bottom: none; }
+.sum-row.total { font-weight: 700; font-size: 16px; color: var(--primary); }
+.sum-row.total span:last-child { font-size: 18px; }
+
+.iva-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.iva-row label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.iva-row select {
+  padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif; background: #f8fafc;
+}
+
+/* Action buttons */
+.action-btns { display: flex; gap: 10px; margin-bottom: 20px; }
+.btn-pdf, .btn-clear {
+  flex: 1; padding: 14px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: transform 0.1s;
+}
+.btn-pdf { background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; }
+.btn-clear { background: #f1f5f9; color: var(--muted); }
+.btn-pdf:active, .btn-clear:active { transform: scale(0.97); }
+
+/* Robert footer */
+.robert-footer {
+  background: white; border-radius: 14px; padding: 14px 16px;
+  box-shadow: var(--shadow); margin-bottom: 24px;
+  border-top: 3px solid var(--robert-yellow);
+  display: flex; align-items: center; gap: 12px;
+}
+.rf-logo {
+  width: 44px; height: 44px; background: var(--robert-yellow);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.rf-info { flex: 1; }
+.rf-info strong { display: block; font-size: 14px; color: var(--robert-blue); font-weight: 800; }
+.rf-info span { font-size: 12px; color: var(--muted); }
+.rf-call {
+  background: var(--robert-blue); color: white;
+  border: none; border-radius: 9px; padding: 9px 14px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; text-decoration: none;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #0f172a; color: white; padding: 10px 18px;
+  border-radius: 20px; font-size: 13px; font-weight: 500;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999;
+  white-space: nowrap; max-width: 90vw; text-align: center;
+}
+#toast.show { opacity: 1; }
+
+/* Listening overlay */
+#listen-overlay {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #ef4444; color: white; padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 700; display: none; z-index: 9999;
+  animation: pulse 0.8s infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+<div id="listen-overlay">🎤 Escoltant...</div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <span class="brush-icon">🎨</span>
+      <h1>El teu Pressupostador</h1>
+      <p>Configura la teva app en 30 segons</p>
+    </div>
+
+    <div class="setup-field">
+      <label>El teu nom o empresa</label>
+      <div class="field-with-mic">
+        <input type="text" id="s-nom" placeholder="Joan Pintors / Pinturas García...">
+        <button class="mic-btn" onclick="vozSetup('s-nom',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Telèfon</label>
+      <div class="field-with-mic">
+        <input type="tel" id="s-tel" placeholder="612 345 678">
+        <button class="mic-btn" onclick="vozSetup('s-tel',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Població</label>
+      <div class="field-with-mic">
+        <input type="text" id="s-pob" placeholder="Lleida, Tarragona...">
+        <button class="mic-btn" onclick="vozSetup('s-pob',this)">🎤</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Especialitat</label>
+      <select id="s-esp">
+        <option>Pintura interior i exterior</option>
+        <option>Pintura industrial</option>
+        <option>Decoració i pintura</option>
+        <option>Impermeabilitzacions</option>
+        <option>Pintura i reformes</option>
+        <option>Pintor autònom</option>
+      </select>
+    </div>
+    <div class="setup-field">
+      <label>Color de la teva app</label>
+      <div class="color-picker">
+        <div class="color-opt sel" data-color="#2563eb" style="background:#2563eb" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#7c3aed" style="background:#7c3aed" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#059669" style="background:#059669" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#dc2626" style="background:#dc2626" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#d97706" style="background:#d97706" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#0891b2" style="background:#0891b2" onclick="selColor(this)"></div>
+        <div class="color-opt" data-color="#1e293b" style="background:#1e293b" onclick="selColor(this)"></div>
+      </div>
+    </div>
+
+    <button class="btn-create" onclick="crearApp()">🚀 Crear la meva app</button>
+
+    <div class="robert-setup">
+      <span>Patrocinat per</span>
+      <strong>🖌 La Botiga del Robert · Lleida</strong>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app">
+  <div class="app-header" id="app-header">
+    <div class="header-left">
+      <div class="header-initials" id="header-initials">JM</div>
+      <div>
+        <div class="header-name" id="header-name">El meu nom</div>
+        <div class="header-sub" id="header-sub">Pintor</div>
+      </div>
+    </div>
+    <button class="btn-settings" onclick="resetApp()" title="Canviar dades">⚙</button>
+  </div>
+
+  <div class="robert-bar">
+    <span>🖌</span>
+    <span class="rb-name">La Botiga del Robert</span>
+    <span>·</span>
+    <span class="rb-phone">📍 Lleida · 973 00 03 92</span>
+  </div>
+
+  <div class="content">
+
+    <div class="section-title">📋 Dades del client</div>
+    <div class="client-card">
+      <div class="field-row">
+        <label>Nom del client</label>
+        <div class="field-with-mic">
+          <input type="text" id="cli-nom" placeholder="Nom i cognoms...">
+          <button class="mic-btn" onclick="vozCampo('cli-nom',this)">🎤</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Adreça de l'obra</label>
+        <div class="field-with-mic">
+          <input type="text" id="cli-adr" placeholder="Carrer, número, pis...">
+          <button class="mic-btn" onclick="vozCampo('cli-adr',this)">🎤</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Data del pressupost</label>
+        <div class="field-with-mic">
+          <input type="date" id="cli-data">
+          <button class="mic-btn" onclick="vozCampo('cli-data',this)">🎤</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Observacions</label>
+        <div class="field-with-mic">
+          <textarea id="cli-obs" placeholder="Notes importants..."></textarea>
+          <button class="mic-btn" onclick="vozCampo('cli-obs',this)">🎤</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">🛠 Partides de treball</div>
+    <div id="partides-container"></div>
+
+    <button class="add-partida-btn" onclick="afegirPartida()">＋ Afegir partida</button>
+
+    <div class="section-title">💶 Resum econòmic</div>
+    <div class="summary-card">
+      <div class="sum-row">
+        <span>Subtotal (sense IVA)</span>
+        <span id="sum-base">0,00 €</span>
+      </div>
+      <div class="iva-row">
+        <label>IVA:</label>
+        <select id="iva-sel" onchange="calcular()">
+          <option value="0">Sense IVA</option>
+          <option value="10">10%</option>
+          <option value="21">21%</option>
+        </select>
+      </div>
+      <div class="sum-row">
+        <span>Import IVA</span>
+        <span id="sum-iva">0,00 €</span>
+      </div>
+      <div class="sum-row total">
+        <span>TOTAL</span>
+        <span id="sum-total">0,00 €</span>
+      </div>
+    </div>
+
+    <div class="action-btns">
+      <button class="btn-pdf" onclick="generarPDF()">📄 Generar PDF</button>
+      <button class="btn-clear" onclick="netejar()">🗑 Netejar</button>
+    </div>
+
+    <div class="robert-footer">
+      <div class="rf-logo">🖌</div>
+      <div class="rf-info">
+        <strong>La Botiga del Robert</strong>
+        <span>El teu proveïdor de pintures a Lleida</span>
+      </div>
+      <a class="rf-call" href="tel:973000392">📞 Trucar</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── APP DATA ───────────────────────────────────────────────────────────────
+var userData = null;
+var partides = [];
+var partidaId = 0;
+
+// Predefined partides (price=0 so painter enters their own)
+var PARTIDES_BASE = [
+  'Pintura interior parets', 'Pintura interior sostre', 'Pintura exterior façana',
+  'Esmalt portes i finestres', 'Vernís fusta', 'Microcement',
+  'Gotelé', 'Imprimació', 'Estuc', 'Pintura garatge',
+  'Desplaçament', 'Preparació superfície', 'Muntatge/desmuntatge bastida',
+  'Pintura reixes', 'Neteja final'
+];
+
+// ─── SETUP ───────────────────────────────────────────────────────────────────
+window.onload = function() {
+  var saved = localStorage.getItem('pintor_user');
+  if (saved) {
+    userData = JSON.parse(saved);
+    iniciarApp();
+  }
+  // Set today's date
+  var today = new Date().toISOString().split('T')[0];
+  var df = document.getElementById('cli-data');
+  if (df) df.value = today;
+};
+
+var selectedColor = '#2563eb';
+
+function selColor(el) {
+  document.querySelectorAll('.color-opt').forEach(function(c) { c.classList.remove('sel'); });
+  el.classList.add('sel');
+  selectedColor = el.getAttribute('data-color');
+}
+
+function crearApp() {
+  var nom = document.getElementById('s-nom').value.trim();
+  var tel = document.getElementById('s-tel').value.trim();
+  var pob = document.getElementById('s-pob').value.trim();
+  var esp = document.getElementById('s-esp').value;
+  if (!nom) { showToast('⚠️ Escriu el teu nom o empresa'); return; }
+  userData = { nom: nom, tel: tel, pob: pob, esp: esp, color: selectedColor };
+  localStorage.setItem('pintor_user', JSON.stringify(userData));
+  iniciarApp();
+}
+
+function iniciarApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  // Apply color
+  document.documentElement.style.setProperty('--primary', userData.color);
+  // Header
+  var initials = userData.nom.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+  document.getElementById('header-initials').textContent = initials;
+  document.getElementById('header-name').textContent = userData.nom;
+  document.getElementById('header-sub').textContent = userData.esp || 'Pintor';
+  document.getElementById('app-header').style.background = userData.color;
+  // Today date
+  var today = new Date().toISOString().split('T')[0];
+  var df = document.getElementById('cli-data');
+  if (df && !df.value) df.value = today;
+  // Default partida
+  if (partides.length === 0) afegirPartida();
+}
+
+function resetApp() {
+  if (!confirm('Vols canviar les teves dades?')) return;
+  localStorage.removeItem('pintor_user');
+  userData = null;
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+}
+
+// ─── PARTIDES ─────────────────────────────────────────────────────────────────
+function afegirPartida() {
+  var id = ++partidaId;
+  partides.push({ id: id, nom: '', cant: 0, preu: 0 });
+  renderPartides();
+}
+
+function renderPartides() {
+  var c = document.getElementById('partides-container');
+  if (!c) return;
+  c.innerHTML = '';
+  partides.forEach(function(p) {
+    var div = document.createElement('div');
+    div.className = 'partida-card';
+    div.setAttribute('data-pid', p.id);
+
+    // Name row
+    var topDiv = document.createElement('div');
+    topDiv.className = 'partida-top';
+    var selBtn = document.createElement('button');
+    selBtn.className = 'mic-btn';
+    selBtn.style.background = '#f0fdf4';
+    selBtn.style.color = '#059669';
+    selBtn.textContent = '📋';
+    selBtn.title = 'Triar partida';
+    (function(pid){ selBtn.addEventListener('click', function(){ triarPartida(pid); }); })(p.id);
+
+    var nameInp = document.createElement('input');
+    nameInp.className = 'partida-name';
+    nameInp.placeholder = 'Descripció de la partida...';
+    nameInp.value = p.nom;
+    (function(pid){ nameInp.addEventListener('input', function(){ updatePartida(pid,'nom',this.value); }); })(p.id);
+
+    var micName = document.createElement('button');
+    micName.className = 'mic-btn';
+    micName.textContent = '🎤';
+    var nameInpRef = nameInp;
+    addVozListener(micName, nameInpRef, false);
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn-del';
+    delBtn.textContent = '✕';
+    (function(pid){ delBtn.addEventListener('click', function(){ eliminarPartida(pid); }); })(p.id);
+
+    topDiv.appendChild(selBtn);
+    topDiv.appendChild(nameInp);
+    topDiv.appendChild(micName);
+    topDiv.appendChild(delBtn);
+
+    // Num rows
+    var numsDiv = document.createElement('div');
+    numsDiv.className = 'partida-nums';
+
+    // Cant
+    var cantRow = document.createElement('div');
+    cantRow.className = 'num-row';
+    var cantLabel = document.createElement('label');
+    cantLabel.textContent = 'Cant.';
+    var cantInp = document.createElement('input');
+    cantInp.type = 'number'; cantInp.min = '0'; cantInp.step = '0.01';
+    cantInp.placeholder = '0';
+    cantInp.value = p.cant > 0 ? p.cant : '';
+    (function(pid){ cantInp.addEventListener('input', function(){ updatePartida(pid,'cant',parseFloat(this.value)||0); calcular(); }); })(p.id);
+    var micCant = document.createElement('button');
+    micCant.className = 'num-mic';
+    micCant.textContent = '🎤';
+    addVozListener(micCant, cantInp, true);
+
+    cantRow.appendChild(cantLabel);
+    cantRow.appendChild(cantInp);
+    cantRow.appendChild(micCant);
+
+    // Preu
+    var preuRow = document.createElement('div');
+    preuRow.className = 'num-row';
+    var preuLabel = document.createElement('label');
+    preuLabel.textContent = 'Preu €';
+    var preuInp = document.createElement('input');
+    preuInp.type = 'number'; preuInp.min = '0'; preuInp.step = '0.01';
+    preuInp.placeholder = '0,00';
+    preuInp.value = p.preu > 0 ? p.preu : '';
+    (function(pid){ preuInp.addEventListener('input', function(){ updatePartida(pid,'preu',parseFloat(this.value)||0); calcular(); }); })(p.id);
+    var micPreu = document.createElement('button');
+    micPreu.className = 'num-mic';
+    micPreu.textContent = '🎤';
+    addVozListener(micPreu, preuInp, true);
+
+    preuRow.appendChild(preuLabel);
+    preuRow.appendChild(preuInp);
+    preuRow.appendChild(micPreu);
+
+    numsDiv.appendChild(cantRow);
+    numsDiv.appendChild(preuRow);
+
+    div.appendChild(topDiv);
+    div.appendChild(numsDiv);
+    c.appendChild(div);
+  });
+  calcular();
+}
+
+function triarPartida(pid) {
+  var opts = PARTIDES_BASE.map(function(n,i){ return (i+1)+'. '+n; }).join('\n');
+  var input = prompt('Tria una partida (escriu el número o el nom):\n\n'+opts);
+  if (!input) return;
+  var num = parseInt(input);
+  var nom = '';
+  if (!isNaN(num) && num >= 1 && num <= PARTIDES_BASE.length) {
+    nom = PARTIDES_BASE[num-1];
+  } else {
+    nom = input;
+  }
+  updatePartida(pid, 'nom', nom);
+  // Update input visually
+  var card = document.querySelector('[data-pid="'+pid+'"]');
+  if (card) {
+    var ni = card.querySelector('.partida-name');
+    if (ni) ni.value = nom;
+  }
+}
+
+function updatePartida(pid, field, val) {
+  var p = partides.find(function(x){ return x.id === pid; });
+  if (p) p[field] = val;
+  calcular();
+}
+
+function eliminarPartida(pid) {
+  partides = partides.filter(function(p){ return p.id !== pid; });
+  renderPartides();
+}
+
+// ─── VOICE ───────────────────────────────────────────────────────────────────
+var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+var activeBtn = null;
+
+function addVozListener(btn, inp, isNumber) {
+  var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  var ev = isMobile ? 'touchstart' : 'click';
+  btn.addEventListener(ev, function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    iniciarVoz(inp, btn, isNumber);
+  }, { passive: false });
+}
+
+function iniciarVoz(inp, btn, isNumber) {
+  if (!SpeechRec) { showToast('⚠️ El teu navegador no suporta la veu'); return; }
+  if (activeBtn && activeBtn !== btn) {
+    activeBtn.classList.remove('listening');
+  }
+  if (btn.classList.contains('listening')) {
+    btn.classList.remove('listening');
+    document.getElementById('listen-overlay').style.display = 'none';
+    activeBtn = null;
+    return;
+  }
+  var rec = new SpeechRec();
+  rec.lang = 'ca-ES';
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+  btn.classList.add('listening');
+  document.getElementById('listen-overlay').style.display = 'block';
+  activeBtn = btn;
+
+  rec.onresult = function(e) {
+    var transcript = '';
+    for (var i = 0; i < e.results[0].length; i++) {
+      var t = e.results[0][i].transcript.trim();
+      if (t) { transcript = t; break; }
+    }
+    btn.classList.remove('listening');
+    document.getElementById('listen-overlay').style.display = 'none';
+    activeBtn = null;
+    if (!transcript) return;
+    if (isNumber) {
+      var num = parseVozNumber(transcript);
+      inp.value = num;
+      inp.dispatchEvent(new Event('input'));
+      showToast('🎤 ' + transcript + ' → ' + num);
+    } else {
+      inp.value = transcript;
+      inp.dispatchEvent(new Event('input'));
+      showToast('🎤 ' + transcript);
+    }
+  };
+  rec.onerror = function(e) {
+    btn.classList.remove('listening');
+    document.getElementById('listen-overlay').style.display = 'none';
+    activeBtn = null;
+    if (e.error === 'no-speech') return;
+    showToast('⚠️ Error micro: ' + e.error);
+  };
+  rec.onend = function() {
+    btn.classList.remove('listening');
+    document.getElementById('listen-overlay').style.display = 'none';
+    activeBtn = null;
+  };
+  try { rec.start(); } catch(ex) { showToast('⚠️ No s\'ha pogut iniciar el micròfon'); }
+}
+
+function vozSetup(fieldId, btn) {
+  var inp = document.getElementById(fieldId);
+  if (!inp) return;
+  iniciarVoz(inp, btn, false);
+}
+
+function vozCampo(fieldId, btn) {
+  var inp = document.getElementById(fieldId);
+  if (!inp) return;
+  iniciarVoz(inp, btn, false);
+}
+
+function parseVozNumber(txt) {
+  var t = txt.toLowerCase().trim();
+  var nums = { 'zero':0,'un':1,'una':1,'dos':2,'dues':2,'tres':3,'quatre':4,
+    'cinc':5,'sis':6,'set':7,'vuit':8,'nou':9,'deu':10,'onze':11,'dotze':12,
+    'tretze':13,'catorze':14,'quinze':15,'setze':16,'disset':17,'divuit':18,
+    'dinou':19,'vint':20,'trenta':30,'quaranta':40,'cinquanta':50,
+    'seixanta':60,'setanta':70,'vuitanta':80,'noranta':90,'cent':100,'dos-cents':200,
+    'cero':0,'uno':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,
+    'siete':7,'ocho':8,'nueve':9,'diez':10,'once':11,'doce':12,
+    'veinte':20,'treinta':30,'cuarenta':40,'cincuenta':50,'sesenta':60,
+    'setenta':70,'ochenta':80,'noventa':90,'cien':100,'coma':'.','punt':'.','punto':'.' };
+  t = t.replace(/coma|punt|punto/g, '.');
+  for (var k in nums) { t = t.replace(new RegExp('\\b'+k+'\\b','g'), ' '+nums[k]+' '); }
+  t = t.replace(/\s+/g,' ').trim();
+  var n = parseFloat(t.replace(/[^0-9.]/g,''));
+  return isNaN(n) ? 0 : Math.round(n*100)/100;
+}
+
+// ─── CALCUL ───────────────────────────────────────────────────────────────────
+function calcular() {
+  var base = 0;
+  partides.forEach(function(p) { base += (p.cant || 0) * (p.preu || 0); });
+  var ivaPct = parseFloat(document.getElementById('iva-sel').value) || 0;
+  var iva = base * ivaPct / 100;
+  var total = base + iva;
+  document.getElementById('sum-base').textContent = fmt(base);
+  document.getElementById('sum-iva').textContent = fmt(iva);
+  document.getElementById('sum-total').textContent = fmt(total);
+}
+
+function fmt(n) { return n.toFixed(2).replace('.', ',') + ' €'; }
+
+// ─── PDF ──────────────────────────────────────────────────────────────────────
+function generarPDF() {
+  if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+    showToast('⏳ Carregant PDF...'); return;
+  }
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  var W = 210; var Y = 20;
+  var color = userData ? userData.color : '#2563eb';
+  var rgb = hexToRgb(color);
+
+  // Header band
+  doc.setFillColor(rgb.r, rgb.g, rgb.b);
+  doc.rect(0, 0, W, 30, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text(userData ? userData.nom : 'Pressupostador', 14, 13);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  if (userData) doc.text(userData.esp + (userData.tel ? '  ·  ' + userData.tel : '') + (userData.pob ? '  ·  ' + userData.pob : ''), 14, 21);
+  doc.text('PRESSUPOST', W-14, 13, {align:'right'});
+  doc.text(new Date().toLocaleDateString('ca-ES'), W-14, 21, {align:'right'});
+
+  Y = 38;
+  doc.setTextColor(30,30,30);
+
+  // Client
+  var nom = document.getElementById('cli-nom').value;
+  var adr = document.getElementById('cli-adr').value;
+  var obs = document.getElementById('cli-obs').value;
+  if (nom || adr) {
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(rgb.r, rgb.g, rgb.b);
+    doc.text('CLIENT', 14, Y); Y += 5;
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+    doc.setFontSize(10);
+    if (nom) { doc.text(nom, 14, Y); Y += 5; }
+    if (adr) { doc.text(adr, 14, Y); Y += 5; }
+    Y += 3;
+  }
+
+  // Partides table
+  doc.setFillColor(rgb.r, rgb.g, rgb.b);
+  doc.rect(14, Y, W-28, 7, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('DESCRIPCIÓ', 17, Y+5);
+  doc.text('CANT.', 130, Y+5, {align:'right'});
+  doc.text('PREU/u.', 160, Y+5, {align:'right'});
+  doc.text('TOTAL', W-14, Y+5, {align:'right'});
+  Y += 9; doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+
+  partides.forEach(function(p, i) {
+    if (!p.nom && !p.preu) return;
+    if (i % 2 === 0) { doc.setFillColor(248,250,252); doc.rect(14, Y-4, W-28, 7, 'F'); }
+    var total = (p.cant||0)*(p.preu||0);
+    doc.text(p.nom || '-', 17, Y);
+    doc.text((p.cant||0).toString(), 130, Y, {align:'right'});
+    doc.text((p.preu||0).toFixed(2)+' €', 160, Y, {align:'right'});
+    doc.text(total.toFixed(2)+' €', W-14, Y, {align:'right'});
+    Y += 7;
+  });
+
+  Y += 5;
+  var base = parseFloat(document.getElementById('sum-base').textContent) || 0;
+  var total = parseFloat(document.getElementById('sum-total').textContent) || 0;
+  var ivaPct = document.getElementById('iva-sel').value;
+
+  doc.setFontSize(9);
+  doc.text('Base imposable:', 130, Y); doc.text(document.getElementById('sum-base').textContent, W-14, Y, {align:'right'}); Y+=5;
+  doc.text('IVA ('+ivaPct+'%):', 130, Y); doc.text(document.getElementById('sum-iva').textContent, W-14, Y, {align:'right'}); Y+=5;
+  doc.setFillColor(rgb.r, rgb.g, rgb.b);
+  doc.rect(120, Y-4, W-134, 8, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('TOTAL:', 130, Y+2); doc.text(document.getElementById('sum-total').textContent, W-14, Y+2, {align:'right'});
+  Y += 14; doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+
+  if (obs) { doc.setFontSize(8); doc.text('Observacions: '+obs, 14, Y); Y+=8; }
+
+  // Robert footer
+  Y = 270;
+  doc.setDrawColor(245, 200, 0); doc.setLineWidth(1);
+  doc.line(14, Y, W-14, Y); Y += 6;
+  doc.setFillColor(245,200,0); doc.rect(14, Y-4, 24, 10, 'F');
+  doc.setTextColor(0,61,143); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('ROBERT', 16, Y+3);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('La Botiga del Robert · El teu proveïdor de pintures a Lleida · Tel: 973 00 03 92', 42, Y+3);
+
+  var filename = 'pressupost-' + (document.getElementById('cli-nom').value || 'client').replace(/\s+/g,'-').toLowerCase() + '.pdf';
+  doc.save(filename);
+  showToast('✅ PDF generat!');
+}
+
+function hexToRgb(hex) {
+  var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? { r:parseInt(r[1],16), g:parseInt(r[2],16), b:parseInt(r[3],16) } : {r:37,g:99,b:235};
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function netejar() {
+  if (!confirm('Netejar totes les dades del pressupost actual?')) return;
+  document.getElementById('cli-nom').value = '';
+  document.getElementById('cli-adr').value = '';
+  document.getElementById('cli-obs').value = '';
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('cli-data').value = today;
+  partides = []; partidaId = 0;
+  afegirPartida();
+  showToast('🗑 Pressupost netejat');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+</script>
+</body>
+</html>
