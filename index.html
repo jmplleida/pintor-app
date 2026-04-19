@@ -76,7 +76,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0f;color:#f0f0f8;min-height:10
     <input type="text" id="act-code" placeholder="XXXX-XXXX-XX" maxlength="12"
       style="width:100%;padding:14px;border:2px solid #e2e8f0;border-radius:10px;font-size:20px;text-align:center;letter-spacing:3px;font-family:monospace;background:#f8fafc;text-transform:uppercase;margin-bottom:8px">
     <div id="act-err" style="color:#ef4444;font-size:13px;margin-bottom:10px;display:none">Codi incorrecte. Contacta amb Robert.</div>
-    <button id="act-btn" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:16px">Activar app</button>
+    <button id="act-btn" onclick="checkActivationCode(document.getElementById('act-code').value.trim().toUpperCase())" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:16px">Activar app</button>
     <div style="border-top:2px solid #f5c800;padding-top:14px;margin-top:4px">
       <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Patrocinat per</span>
       <div style="font-size:14px;color:#003d8f;font-weight:700;margin-top:2px">🖌 La Botiga del Robert · Lleida</div>
