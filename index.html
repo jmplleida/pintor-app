@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PintorApp">
+<title>PintorApp - Pressupostador</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:'AIzaSyBsnQ3pRx0AS0n3AEr0jp8atCbVlQIuyYQ',
+  authDomain:'pintorapp-6d480.firebaseapp.com',
+  databaseURL:'https://pintorapp-6d480-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId:'pintorapp-6d480',
+  storageBucket:'pintorapp-6d480.firebasestorage.app',
+  messagingSenderId:'798799179968',
+  appId:'1:798799179968:web:14ab31b03e17b8b041bd25'
+});
+
+function activarApp() {
+  var code = document.getElementById('act-code').value.trim().toUpperCase();
+  if (!code) return;
+  var btn = document.getElementById('act-btn');
+  btn.textContent = 'Verificant...';
+  btn.disabled = true;
+  var db = firebase.database();
+  db.ref('pintorapp/packs').once('value', function(snap) {
+    var packs = snap.val() || {};
+    var found = false, foundPid = null, foundCode = null;
+    Object.keys(packs).forEach(function(pid) {
+      var pk = packs[pid];
+      if (!pk.codigos) return;
+      Object.keys(pk.codigos).forEach(function(sc) {
+        var n1 = sc.replace(/-/g,'').toUpperCase();
+        var n2 = code.replace(/-/g,'').toUpperCase();
+        if (n1 === n2 && pk.codigos[sc].estado === 'libre') {
+          found = true; foundPid = pid; foundCode = sc;
+        }
+      });
+    });
+    if (found) {
+      db.ref('pintorapp/packs/'+foundPid+'/codigos/'+foundCode).update({estado:'activo',activat:new Date().toISOString()});
+      localStorage.setItem('pintor_activated', foundCode);
+      document.getElementById('activation-screen').style.display = 'none';
+      document.getElementById('setup-screen').style.display = 'flex';
+    } else {
+      document.getElementById('act-err').style.display = 'block';
+      btn.textContent = 'Activar app';
+      btn.disabled = false;
+    }
+  });
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f8fafc;color:#0f172a;min-height:100vh}
+:root{--primary:#2563eb;--muted:#64748b;--border:#e2e8f0;--card:#fff;--ry:#f5c800;--rb:#003d8f}
+
+/* ACTIVATION */
+#activation-screen{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;padding:24px}
+.act-card{background:white;border-radius:20px;padding:32px 24px;width:100%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.act-card .ico{font-size:50px;margin-bottom:10px}
+.act-card h1{font-size:22px;font-weight:800;margin-bottom:6px}
+.act-card p{color:#64748b;font-size:13px;margin-bottom:22px}
+.act-input{width:100%;padding:14px;border:2px solid #e2e8f0;border-radius:10px;font-size:20px;text-align:center;letter-spacing:3px;font-family:monospace;background:#f8fafc;margin-bottom:6px;text-transform:uppercase}
+.act-input:focus{outline:none;border-color:#2563eb}
+#act-err{color:#ef4444;font-size:12px;margin-bottom:8px;display:none}
+.act-btn{width:100%;padding:14px;background:#2563eb;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px}
+.act-btn:disabled{opacity:.7}
+.act-sponsor{border-top:2px solid var(--ry);padding-top:14px}
+.act-sponsor span{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px}
+.act-sponsor strong{display:block;font-size:14px;color:var(--rb);font-weight:700;margin:4px 0}
+.act-tel{display:inline-block;background:var(--ry);color:var(--rb);padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-top:6px}
+
+/* SETUP */
+#setup-screen{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.setup-card{background:white;border-radius:20px;padding:28px 22px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.setup-logo{text-align:center;margin-bottom:20px}
+.setup-logo h1{font-size:20px;font-weight:800;color:#0f172a;margin-top:8px}
+.setup-logo p{color:#64748b;font-size:13px;margin-top:4px}
+.sf{margin-bottom:14px}
+.sf label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.sf input,.sf select{width:100%;padding:11px 13px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;background:#f8fafc}
+.sf input:focus,.sf select:focus{outline:none;border-color:#2563eb;background:white}
+.mic-wrap{display:flex;gap:7px;align-items:center}
+.mic-wrap input{flex:1;min-width:0}
+.mibtn{width:36px;height:36px;border-radius:8px;border:none;background:#eff6ff;color:#2563eb;font-size:16px;cursor:pointer;flex-shrink:0}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.col-opt{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;position:relative}
+.col-opt.sel{border-color:#0f172a;transform:scale(1.15)}
+.col-opt.sel::after{content:'checkmark';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-size:13px;font-weight:700;content:'\2713'}
+.btn-create{width:100%;padding:14px;background:#2563eb;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+.robert-setup{text-align:center;margin-top:18px;padding-top:14px;border-top:2px solid var(--ry)}
+.robert-setup span{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px}
+.robert-setup strong{display:block;font-size:14px;color:var(--rb);font-weight:700;margin-top:3px}
+
+/* MAIN APP */
+#main-app{display:none}
+.app-header{padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;min-height:58px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.h-left{display:flex;align-items:center;gap:10px}
+.h-ini{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white;background:rgba(255,255,255,.25)}
+.h-name{font-weight:700;font-size:14px;color:white;line-height:1.1}
+.h-sub{font-size:11px;color:rgba(255,255,255,.75)}
+.btn-cfg{background:rgba(255,255,255,.2);border:none;color:white;width:34px;height:34px;border-radius:8px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.rob-bar{background:var(--ry);display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px}
+.rob-bar span{font-size:11px;color:var(--rb);font-weight:600}
+.rob-bar .rbn{font-size:13px;font-weight:800;color:var(--rb)}
+.content{padding:16px;max-width:600px;margin:0 auto}
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;margin-top:20px}
+.sec-title:first-child{margin-top:0}
+.cli-card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:16px}
+.frow{margin-bottom:12px}
+.frow:last-child{margin-bottom:0}
+.frow label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.fwm{display:flex;gap:8px;align-items:center}
+.fwm input,.fwm textarea{flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;background:#f8fafc;min-width:0}
+.fwm input:focus,.fwm textarea:focus{outline:none;border-color:var(--primary);background:white}
+.fwm textarea{min-height:60px;resize:none}
+.mic{width:36px;height:36px;border-radius:9px;border:none;background:#eff6ff;color:var(--primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mic.listening{background:#fee2e2;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.part-card{background:var(--card);border-radius:14px;padding:14px 16px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:10px;border-left:4px solid var(--primary);animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.part-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.part-name{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;background:#f8fafc;min-width:0}
+.part-name:focus{outline:none;border-color:var(--primary);background:white}
+.btn-del{width:32px;height:32px;border-radius:8px;border:none;background:#fee2e2;color:#ef4444;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.part-nums{display:flex;flex-direction:column;gap:8px}
+.num-row{display:flex;align-items:center;gap:8px}
+.num-row label{font-size:12px;font-weight:600;color:var(--muted);width:48px;flex-shrink:0}
+.num-row input{flex:1;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;background:#f8fafc;min-width:0;text-align:right}
+.num-row input:focus{outline:none;border-color:var(--primary);background:white}
+.nmic{width:34px;height:34px;border-radius:8px;border:none;background:#eff6ff;color:var(--primary);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nmic.listening{background:#fee2e2;animation:pulse .8s infinite}
+.add-part{width:100%;padding:13px;background:white;border:2px dashed var(--border);border-radius:12px;font-size:14px;font-weight:600;color:var(--primary);cursor:pointer;margin-bottom:16px}
+.sum-card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:16px}
+.sum-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid var(--border)}
+.sum-row:last-child{border-bottom:none}
+.sum-row.tot{font-weight:700;font-size:16px;color:var(--primary)}
+.iva-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.iva-row label{font-size:13px;font-weight:600;color:var(--muted)}
+.iva-row select{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:#f8fafc}
+.act-btns{display:flex;gap:10px;margin-bottom:20px}
+.btn-pdf{flex:1;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:#2563eb;color:white}
+.btn-clr{flex:1;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:#f1f5f9;color:var(--muted)}
+.rob-footer{background:white;border-radius:14px;padding:14px 16px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:24px;border-top:3px solid var(--ry);display:flex;align-items:center;gap:12px}
+.rf-logo{width:42px;height:42px;background:var(--ry);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.rf-info{flex:1}
+.rf-info strong{display:block;font-size:14px;color:var(--rb);font-weight:800}
+.rf-info span{font-size:12px;color:var(--muted)}
+.rf-call{background:var(--rb);color:white;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:white;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+#listen-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;display:none;z-index:9999;animation:pulse .8s infinite}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="listen-bar">Escoltant...</div>
+
+<!-- ACTIVATION -->
+<div id="activation-screen">
+  <div class="act-card">
+    <div class="ico">&#128396;</div>
+    <h1>PintorApp</h1>
+    <p>Introdueix el codi d'activacio que t'ha donat<br><strong style="color:#003d8f">La Botiga del Robert</strong></p>
+    <input class="act-input" type="text" id="act-code" placeholder="XXXX-XXXX-XX" maxlength="15">
+    <div id="act-err">Codi incorrecte. Contacta amb Robert.</div>
+    <button class="act-btn" id="act-btn" onclick="activarApp()">Activar app</button>
+    <div class="act-sponsor">
+      <span>Patrocinat per</span>
+      <strong>La Botiga del Robert - Lleida</strong>
+      <a class="act-tel" href="tel:973000392">Tel: 973 00 03 92</a>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div style="font-size:44px">&#128396;</div>
+      <h1>El teu Pressupostador</h1>
+      <p>Configura la teva app en 30 segons</p>
+    </div>
+    <div class="sf"><label>Nom o empresa</label><div class="mic-wrap"><input type="text" id="s-nom" placeholder="Joan Pintors..."><button class="mibtn" onclick="vozSetup('s-nom',this)">&#127908;</button></div></div>
+    <div class="sf"><label>Telefon</label><div class="mic-wrap"><input type="tel" id="s-tel" placeholder="612 345 678"><button class="mibtn" onclick="vozSetup('s-tel',this)">&#127908;</button></div></div>
+    <div class="sf"><label>CIF / NIF / DNI</label><div class="mic-wrap"><input type="text" id="s-cif" placeholder="B12345678" style="text-transform:uppercase"><button class="mibtn" onclick="vozSetup('s-cif',this)">&#127908;</button></div></div>
+    <div class="sf"><label>Adreca empresa</label><div class="mic-wrap"><input type="text" id="s-adr" placeholder="Carrer Major 12, Lleida"><button class="mibtn" onclick="vozSetup('s-adr',this)">&#127908;</button></div></div>
+    <div class="sf"><label>Poblacio</label><div class="mic-wrap"><input type="text" id="s-pob" placeholder="Lleida..."><button class="mibtn" onclick="vozSetup('s-pob',this)">&#127908;</button></div></div>
+    <div class="sf"><label>Email</label><div class="mic-wrap"><input type="email" id="s-email" placeholder="joan@pintors.cat"><button class="mibtn" onclick="vozSetup('s-email',this)">&#127908;</button></div></div>
+    <div class="sf"><label>Especialitat</label>
+      <select id="s-esp"><option>Pintura interior i exterior</option><option>Pintura industrial</option><option>Decoracio i pintura</option><option>Impermeabilitzacions</option><option>Pintura i reformes</option><option>Pintor autonom</option></select>
+    </div>
+    <div class="sf"><label>Color de la teva app</label>
+      <div class="color-row">
+        <div class="col-opt sel" data-color="#2563eb" style="background:#2563eb" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#7c3aed" style="background:#7c3aed" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#059669" style="background:#059669" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#dc2626" style="background:#dc2626" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#d97706" style="background:#d97706" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#0891b2" style="background:#0891b2" onclick="selColor(this)"></div>
+        <div class="col-opt" data-color="#1e293b" style="background:#1e293b" onclick="selColor(this)"></div>
+      </div>
+    </div>
+    <button class="btn-create" onclick="crearApp()">Crear la meva app</button>
+    <div class="robert-setup"><span>Patrocinat per</span><strong>La Botiga del Robert - Lleida</strong></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app">
+  <div class="app-header" id="app-header">
+    <div class="h-left">
+      <div class="h-ini" id="h-ini">JM</div>
+      <div><div class="h-name" id="h-name">Nom</div><div class="h-sub" id="h-sub">Pintor</div></div>
+    </div>
+    <button class="btn-cfg" onclick="resetApp()">&#9881;</button>
+  </div>
+  <div class="rob-bar">
+    <span>La Botiga del Robert</span><span>-</span><span class="rbn">Lleida - 973 00 03 92</span>
+  </div>
+  <div class="content">
+    <div class="sec-title">Dades del client</div>
+    <div class="cli-card">
+      <div class="frow"><label>Nom del client</label><div class="fwm"><input type="text" id="cli-nom" placeholder="Nom i cognoms..."><button class="mic" onclick="vozCampo('cli-nom',this)">&#127908;</button></div></div>
+      <div class="frow"><label>Adreca de l'obra</label><div class="fwm"><input type="text" id="cli-adr" placeholder="Carrer, numero, pis..."><button class="mic" onclick="vozCampo('cli-adr',this)">&#127908;</button></div></div>
+      <div class="frow"><label>Data del pressupost</label><div class="fwm"><input type="date" id="cli-data"><button class="mic" onclick="vozCampo('cli-data',this)">&#127908;</button></div></div>
+      <div class="frow"><label>Observacions</label><div class="fwm"><textarea id="cli-obs" placeholder="Notes importants..."></textarea><button class="mic" onclick="vozCampo('cli-obs',this)">&#127908;</button></div></div>
+    </div>
+    <div class="sec-title">Partides de treball</div>
+    <div id="partides-container"></div>
+    <button class="add-part" onclick="afegirPartida()">+ Afegir partida</button>
+    <div class="sec-title">Resum economic</div>
+    <div class="sum-card">
+      <div class="sum-row"><span>Subtotal (sense IVA)</span><span id="sum-base">0,00 EUR</span></div>
+      <div class="iva-row"><label>IVA:</label><select id="iva-sel" onchange="calcular()"><option value="0">Sense IVA</option><option value="10">10%</option><option value="21">21%</option></select></div>
+      <div class="sum-row"><span>Import IVA</span><span id="sum-iva">0,00 EUR</span></div>
+      <div class="sum-row tot"><span>TOTAL</span><span id="sum-total">0,00 EUR</span></div>
+    </div>
+    <div class="act-btns">
+      <button class="btn-pdf" onclick="generarPDF()">Generar PDF</button>
+      <button class="btn-clr" onclick="netejar()">Netejar</button>
+    </div>
+    <div class="rob-footer">
+      <div class="rf-logo">&#128396;</div>
+      <div class="rf-info"><strong>La Botiga del Robert</strong><span>El teu proveidor de pintures a Lleida</span></div>
+      <a class="rf-call" href="tel:973000392">Trucar</a>
+    </div>
+  </div>
+</div>
+
+<script>
+var userData=null,partides=[],partidaId=0,selectedColor='#2563eb';
+var PARTS=['Pintura interior parets','Pintura interior sostre','Pintura exterior facana','Esmalt portes i finestres','Vernis fusta','Microcement','Gotelé','Imprimacio','Estuc','Pintura garatge','Desplacament','Preparacio superficie','Muntatge/desmuntatge bastida','Pintura reixes','Neteja final'];
+
+window.onload=function(){
+  var act=localStorage.getItem('pintor_activated');
+  var saved=localStorage.getItem('pintor_user');
+  if(act&&saved){
+    userData=JSON.parse(saved);
+    document.getElementById('activation-screen').style.display='none';
+    iniciarApp();
+  }else if(act&&!saved){
+    document.getElementById('activation-screen').style.display='none';
+    document.getElementById('setup-screen').style.display='flex';
+  }else{
+    document.getElementById('activation-screen').style.display='flex';
+  }
+  var df=document.getElementById('cli-data');
+  if(df)df.value=new Date().toISOString().split('T')[0];
+};
+
+function selColor(el){
+  document.querySelectorAll('.col-opt').forEach(function(c){c.classList.remove('sel')});
+  el.classList.add('sel');
+  selectedColor=el.getAttribute('data-color');
+}
+
+function crearApp(){
+  var nom=document.getElementById('s-nom').value.trim();
+  if(!nom){showToast('Escriu el teu nom o empresa');return}
+  userData={
+    nom:nom,
+    tel:document.getElementById('s-tel').value.trim(),
+    cif:document.getElementById('s-cif').value.trim().toUpperCase(),
+    adr:document.getElementById('s-adr').value.trim(),
+    pob:document.getElementById('s-pob').value.trim(),
+    email:document.getElementById('s-email').value.trim(),
+    esp:document.getElementById('s-esp').value,
+    color:selectedColor
+  };
+  localStorage.setItem('pintor_user',JSON.stringify(userData));
+  document.getElementById('setup-screen').style.display='none';
+  iniciarApp();
+}
+
+function iniciarApp(){
+  document.getElementById('main-app').style.display='block';
+  document.documentElement.style.setProperty('--primary',userData.color);
+  var ini=userData.nom.split(' ').map(function(w){return w[0]||''}).join('').substring(0,2).toUpperCase();
+  document.getElementById('h-ini').textContent=ini;
+  document.getElementById('h-name').textContent=userData.nom;
+  document.getElementById('h-sub').textContent=userData.esp||'Pintor';
+  document.getElementById('app-header').style.background=userData.color;
+  var df=document.getElementById('cli-data');
+  if(df&&!df.value)df.value=new Date().toISOString().split('T')[0];
+  if(partides.length===0)afegirPartida();
+}
+
+function resetApp(){
+  if(!confirm('Vols canviar les teves dades?'))return;
+  localStorage.removeItem('pintor_user');
+  localStorage.removeItem('pintor_activated');
+  userData=null;
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('activation-screen').style.display='flex';
+}
+
+function afegirPartida(){
+  var id=++partidaId;
+  partides.push({id:id,nom:'',cant:0,preu:0});
+  renderPartides();
+}
+
+function renderPartides(){
+  var c=document.getElementById('partides-container');
+  if(!c)return;
+  c.innerHTML='';
+  partides.forEach(function(p){
+    var div=document.createElement('div');
+    div.className='part-card';
+    div.setAttribute('data-pid',p.id);
+    var top=document.createElement('div');top.className='part-top';
+    var selBtn=document.createElement('button');selBtn.className='mic';selBtn.style.background='#f0fdf4';selBtn.style.color='#059669';selBtn.textContent='L';
+    (function(pid){selBtn.addEventListener('click',function(){triarPartida(pid)})})(p.id);
+    var ni=document.createElement('input');ni.className='part-name';ni.placeholder='Descripcio de la partida...';ni.value=p.nom;
+    (function(pid){ni.addEventListener('input',function(){updateP(pid,'nom',this.value)})})(p.id);
+    var mn=document.createElement('button');mn.className='mic';mn.textContent='M';
+    addVL(mn,ni,false);
+    var db2=document.createElement('button');db2.className='btn-del';db2.textContent='X';
+    (function(pid){db2.addEventListener('click',function(){eliminarPartida(pid)})})(p.id);
+    top.appendChild(selBtn);top.appendChild(ni);top.appendChild(mn);top.appendChild(db2);
+    var nums=document.createElement('div');nums.className='part-nums';
+    var cr=document.createElement('div');cr.className='num-row';
+    var cl=document.createElement('label');cl.textContent='Cant.';
+    var ci=document.createElement('input');ci.type='number';ci.min='0';ci.step='0.01';ci.placeholder='0';ci.value=p.cant>0?p.cant:'';
+    (function(pid){ci.addEventListener('input',function(){updateP(pid,'cant',parseFloat(this.value)||0);calcular()})})(p.id);
+    var cm=document.createElement('button');cm.className='nmic';cm.textContent='M';
+    addVL(cm,ci,true);
+    cr.appendChild(cl);cr.appendChild(ci);cr.appendChild(cm);
+    var pr=document.createElement('div');pr.className='num-row';
+    var pl=document.createElement('label');pl.textContent='Preu';
+    var pi=document.createElement('input');pi.type='number';pi.min='0';pi.step='0.01';pi.placeholder='0.00';pi.value=p.preu>0?p.preu:'';
+    (function(pid){pi.addEventListener('input',function(){updateP(pid,'preu',parseFloat(this.value)||0);calcular()})})(p.id);
+    var pm=document.createElement('button');pm.className='nmic';pm.textContent='M';
+    addVL(pm,pi,true);
+    pr.appendChild(pl);pr.appendChild(pi);pr.appendChild(pm);
+    nums.appendChild(cr);nums.appendChild(pr);
+    div.appendChild(top);div.appendChild(nums);
+    c.appendChild(div);
+  });
+  calcular();
+}
+
+function triarPartida(pid){
+  var opts=PARTS.map(function(n,i){return(i+1)+'. '+n}).join('\n');
+  var inp=prompt('Tria una partida:\n\n'+opts);
+  if(!inp)return;
+  var num=parseInt(inp);
+  var nom=(!isNaN(num)&&num>=1&&num<=PARTS.length)?PARTS[num-1]:inp;
+  updateP(pid,'nom',nom);
+  var card=document.querySelector('[data-pid="'+pid+'"]');
+  if(card){var ni=card.querySelector('.part-name');if(ni)ni.value=nom}
+}
+
+function updateP(pid,field,val){
+  var p=partides.find(function(x){return x.id===pid});
+  if(p)p[field]=val;
+  calcular();
+}
+
+function eliminarPartida(pid){
+  partides=partides.filter(function(p){return p.id!==pid});
+  renderPartides();
+}
+
+var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+var activeBtn=null;
+
+function addVL(btn,inp,isNum){
+  var mob=/Android|iPhone|iPad/i.test(navigator.userAgent);
+  btn.addEventListener(mob?'touchstart':'click',function(e){
+    e.preventDefault();e.stopPropagation();
+    iniciarVoz(inp,btn,isNum);
+  },{passive:false});
+}
+
+function iniciarVoz(inp,btn,isNum){
+  if(!SpeechRec){showToast('El teu navegador no suporta la veu');return}
+  if(activeBtn&&activeBtn!==btn)activeBtn.classList.remove('listening');
+  if(btn.classList.contains('listening')){
+    btn.classList.remove('listening');
+    document.getElementById('listen-bar').style.display='none';
+    activeBtn=null;return;
+  }
+  var rec=new SpeechRec();
+  rec.lang='ca-ES';rec.interimResults=false;rec.maxAlternatives=3;
+  btn.classList.add('listening');
+  document.getElementById('listen-bar').style.display='block';
+  activeBtn=btn;
+  rec.onresult=function(e){
+    var t='';
+    for(var i=0;i<e.results[0].length;i++){if(e.results[0][i].transcript.trim()){t=e.results[0][i].transcript.trim();break}}
+    btn.classList.remove('listening');
+    document.getElementById('listen-bar').style.display='none';
+    activeBtn=null;
+    if(!t)return;
+    if(isNum){var n=parseVN(t);inp.value=n;inp.dispatchEvent(new Event('input'));showToast(t+' = '+n)}
+    else{inp.value=t;inp.dispatchEvent(new Event('input'));showToast(t)}
+  };
+  rec.onerror=function(e){
+    btn.classList.remove('listening');
+    document.getElementById('listen-bar').style.display='none';
+    activeBtn=null;
+    if(e.error!=='no-speech')showToast('Error micro: '+e.error);
+  };
+  rec.onend=function(){btn.classList.remove('listening');document.getElementById('listen-bar').style.display='none';activeBtn=null};
+  try{rec.start()}catch(ex){showToast('No s\'ha pogut iniciar el microfon')}
+}
+
+function vozSetup(fid,btn){var inp=document.getElementById(fid);if(inp)iniciarVoz(inp,btn,false)}
+function vozCampo(fid,btn){var inp=document.getElementById(fid);if(inp)iniciarVoz(inp,btn,false)}
+
+function parseVN(txt){
+  var t=txt.toLowerCase().trim();
+  var n={'zero':0,'un':1,'una':1,'dos':2,'tres':3,'quatre':4,'cinc':5,'sis':6,'set':7,'vuit':8,'nou':9,'deu':10,'onze':11,'dotze':12,'tretze':13,'catorze':14,'quinze':15,'setze':16,'disset':17,'divuit':18,'dinou':19,'vint':20,'trenta':30,'quaranta':40,'cinquanta':50,'seixanta':60,'setanta':70,'vuitanta':80,'noranta':90,'cent':100,'cero':0,'uno':1,'doce':12,'veinte':20,'treinta':30,'cuarenta':40,'cincuenta':50,'sesenta':60,'setenta':70,'ochenta':80,'noventa':90,'cien':100};
+  t=t.replace(/coma|punt|punto/g,'.');
+  for(var k in n)t=t.replace(new RegExp('\\b'+k+'\\b','g'),' '+n[k]+' ');
+  t=t.replace(/\s+/g,' ').trim();
+  var v=parseFloat(t.replace(/[^0-9.]/g,''));
+  return isNaN(v)?0:Math.round(v*100)/100;
+}
+
+function calcular(){
+  var base=0;
+  partides.forEach(function(p){base+=(p.cant||0)*(p.preu||0)});
+  var iva=parseFloat(document.getElementById('iva-sel').value)||0;
+  var ivaAmt=base*iva/100;
+  var tot=base+ivaAmt;
+  document.getElementById('sum-base').textContent=fmt(base);
+  document.getElementById('sum-iva').textContent=fmt(ivaAmt);
+  document.getElementById('sum-total').textContent=fmt(tot);
+}
+
+function fmt(n){return n.toFixed(2).replace('.',',')+' EUR'}
+
+function generarPDF(){
+  if(!window.jspdf){showToast('Carregant PDF...');return}
+  var {jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var W=210,Y=20;
+  var color=userData?userData.color:'#2563eb';
+  var rgb=hexRgb(color);
+  var hh=42;
+  doc.setFillColor(rgb.r,rgb.g,rgb.b);doc.rect(0,0,W,hh,'F');
+  var lx=14;
+  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text(userData?userData.nom:'Pressupostador',lx,12);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  if(userData&&userData.esp)doc.text(userData.esp+(userData.tel?' - Tel: '+userData.tel:''),lx,19);
+  if(userData&&userData.adr)doc.text(userData.adr+(userData.pob?' - '+userData.pob:''),lx,25);
+  if(userData&&userData.cif)doc.text('CIF: '+userData.cif+(userData.email?' - '+userData.email:''),lx,31);
+  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('PRESSUPOST',W-14,12,{align:'right'});
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(new Date().toLocaleDateString('ca-ES'),W-14,20,{align:'right'});
+  doc.text('PRE-'+Date.now().toString().slice(-6),W-14,27,{align:'right'});
+  Y=hh+8;doc.setTextColor(30,30,30);
+  var cn=document.getElementById('cli-nom').value;
+  var ca=document.getElementById('cli-adr').value;
+  var co=document.getElementById('cli-obs').value;
+  if(cn||ca){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(rgb.r,rgb.g,rgb.b);
+    doc.text('CLIENT',14,Y);Y+=5;
+    doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(10);
+    if(cn){doc.text(cn,14,Y);Y+=5}
+    if(ca){doc.text(ca,14,Y);Y+=5}
+    Y+=3;
+  }
+  doc.setFillColor(rgb.r,rgb.g,rgb.b);doc.rect(14,Y,W-28,7,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+  doc.text('DESCRIPCIO',17,Y+5);doc.text('CANT.',130,Y+5,{align:'right'});
+  doc.text('PREU',160,Y+5,{align:'right'});doc.text('TOTAL',W-14,Y+5,{align:'right'});
+  Y+=9;doc.setTextColor(30,30,30);doc.setFont('helvetica','normal');
+  partides.forEach(function(p,i){
+    if(!p.nom&&!p.preu)return;
+    if(i%2===0){doc.setFillColor(248,250,252);doc.rect(14,Y-4,W-28,7,'F')}
+    var tot=(p.cant||0)*(p.preu||0);
+    doc.text(p.nom||'-',17,Y);doc.text((p.cant||0).toString(),130,Y,{align:'right'});
+    doc.text((p.preu||0).toFixed(2)+' EUR',160,Y,{align:'right'});doc.text(tot.toFixed(2)+' EUR',W-14,Y,{align:'right'});
+    Y+=7;
+  });
+  Y+=5;
+  var iv=document.getElementById('iva-sel').value;
+  doc.setFontSize(9);
+  doc.text('Base imposable:',130,Y);doc.text(document.getElementById('sum-base').textContent,W-14,Y,{align:'right'});Y+=5;
+  doc.text('IVA ('+iv+'%):',130,Y);doc.text(document.getElementById('sum-iva').textContent,W-14,Y,{align:'right'});Y+=5;
+  doc.setFillColor(rgb.r,rgb.g,rgb.b);doc.rect(120,Y-4,W-134,8,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('TOTAL:',130,Y+2);doc.text(document.getElementById('sum-total').textContent,W-14,Y+2,{align:'right'});
+  Y+=14;doc.setTextColor(30,30,30);doc.setFont('helvetica','normal');
+  if(co){doc.setFontSize(8);doc.text('Observacions: '+co,14,Y)}
+  Y=270;doc.setDrawColor(245,200,0);doc.setLineWidth(1);doc.line(14,Y,W-14,Y);Y+=6;
+  doc.setFillColor(245,200,0);doc.rect(14,Y-4,24,10,'F');
+  doc.setTextColor(0,61,143);doc.setFont('helvetica','bold');doc.setFontSize(9);
+  doc.text('ROBERT',16,Y+3);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text('La Botiga del Robert - Pintures a Lleida - Tel: 973 00 03 92',42,Y+3);
+  var fn='pressupost-'+(document.getElementById('cli-nom').value||'client').replace(/\s+/g,'-').toLowerCase()+'.pdf';
+  doc.save(fn);showToast('PDF generat!');
+}
+
+function hexRgb(h){var r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:37,g:99,b:235}}
+
+function netejar(){
+  if(!confirm('Netejar les dades?'))return;
+  document.getElementById('cli-nom').value='';
+  document.getElementById('cli-adr').value='';
+  document.getElementById('cli-obs').value='';
+  document.getElementById('cli-data').value=new Date().toISOString().split('T')[0];
+  partides=[];partidaId=0;afegirPartida();
+  showToast('Pressupost netejat');
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2800);
+}
+</script>
+</body>
+</html>
