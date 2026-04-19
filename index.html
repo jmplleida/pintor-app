@@ -65,6 +65,8 @@ body{font-family:Arial,sans-serif;background:#0a0a0f;color:#f0f0f8;min-height:10
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a26;border:1px solid #333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
 #toast.show{opacity:1}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey: 'AIzaSyBsnQ3pRx0AS0n3AEr0jp8atCbVlQIuyYQ',
@@ -212,8 +214,6 @@ function checkActivationCode(code) {
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
 var K='NachiDacia2342';
