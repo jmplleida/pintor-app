@@ -66,6 +66,16 @@ body{font-family:Arial,sans-serif;background:#0a0a0f;color:#f0f0f8;min-height:10
 #toast.show{opacity:1}
 </style>
 <script>
+firebase.initializeApp({
+  apiKey: 'AIzaSyBsnQ3pRx0AS0n3AEr0jp8atCbVlQIuyYQ',
+  authDomain: 'pintorapp-6d480.firebaseapp.com',
+  databaseURL: 'https://pintorapp-6d480-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'pintorapp-6d480',
+  storageBucket: 'pintorapp-6d480.firebasestorage.app',
+  messagingSenderId: '798799179968',
+  appId: '1:798799179968:web:14ab31b03e17b8b041bd25'
+});
+
 function checkActivationCode(code) {
   if (!code || code.length < 5) {
     document.getElementById('act-err').style.display = 'block';
@@ -77,15 +87,21 @@ function checkActivationCode(code) {
   var db = firebase.database();
   db.ref('pintorapp/packs').once('value', function(snap) {
     var packs = snap.val() || {};
-    var found = false, foundPid = null;
+    var found = false, foundPid = null, foundCode = null;
     Object.keys(packs).forEach(function(pid) {
       var pk = packs[pid];
-      if (pk.codigos && pk.codigos[code] && pk.codigos[code].estado === 'libre') {
-        found = true; foundPid = pid;
-      }
+      if (!pk.codigos) return;
+      Object.keys(pk.codigos).forEach(function(storedCode) {
+        // Compare ignoring dashes and case
+        var normalStored = storedCode.replace(/-/g,'').toUpperCase();
+        var normalInput = code.replace(/-/g,'').toUpperCase();
+        if (normalStored === normalInput && pk.codigos[storedCode].estado === 'libre') {
+          found = true; foundPid = pid; foundCode = storedCode;
+        }
+      });
     });
     if (found) {
-      db.ref('pintorapp/packs/'+foundPid+'/codigos/'+code).update({estado:'activo',activat:new Date().toISOString()});
+      db.ref('pintorapp/packs/'+foundPid+'/codigos/'+(foundCode||code)).update({estado:'activo',activat:new Date().toISOString()});
       localStorage.setItem('pintor_activated', code);
       document.getElementById('activation-screen').style.display = 'none';
       document.getElementById('setup-screen').style.display = 'flex';
