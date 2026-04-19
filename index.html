@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<title>Consola Master</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#0a0a0f;color:#f0f0f8;min-height:100vh}
+#pgLogin{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.loginBox{background:#1a1a26;border:2px solid #f5c800;border-radius:16px;padding:40px;width:320px;text-align:center}
+.loginBox h1{color:#f5c800;font-size:20px;margin-bottom:6px}
+.loginBox p{color:#666;font-size:12px;margin-bottom:24px}
+.loginBox input{width:100%;padding:12px;background:#000;border:2px solid #333;border-radius:8px;color:#fff;font-size:18px;text-align:center;letter-spacing:3px}
+.loginBox input:focus{outline:none;border-color:#f5c800}
+.btnY{width:100%;padding:13px;margin-top:12px;background:#f5c800;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer}
+#err{color:#f44;font-size:13px;margin-top:8px;display:none}
+#pgMain{display:none}
+.topbar{background:#111;border-bottom:2px solid #f5c800;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+.topbar h2{color:#f5c800;font-size:16px}
+.btnR{background:#300;color:#f44;border:1px solid #f44;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+.tabs{display:flex;padding:16px 16px 0;gap:4px}
+.tab{flex:1;padding:10px;background:#1a1a26;border:1px solid #333;border-radius:8px;color:#666;font-size:13px;font-weight:bold;cursor:pointer;text-align:center}
+.tab.sel{background:#2563eb;border-color:#2563eb;color:#fff}
+.wrap{padding:16px}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.hdr span{font-size:12px;color:#555;text-transform:uppercase}
+.btnG{background:#f5c800;color:#000;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:bold;cursor:pointer}
+.card{background:#1a1a26;border:1px solid #2a2a3a;border-radius:12px;padding:14px;margin-bottom:10px}
+.card.act{border-left:4px solid #0e6}
+.card.ina{border-left:4px solid #f44;opacity:.7}
+.ctop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.av{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px;color:#fff;flex-shrink:0}
+.cn{font-weight:bold;font-size:15px}
+.cs{font-size:12px;color:#555}
+.bdg{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:bold}
+.bdg.on{background:rgba(0,238,102,.15);color:#0e6}
+.bdg.off{background:rgba(255,68,68,.15);color:#f44}
+.cm{font-size:11px;color:#555;margin-bottom:10px}
+.cm b{color:#aaa}
+.cbtns{display:flex;gap:6px;flex-wrap:wrap}
+.cbtns button{padding:6px 12px;border-radius:6px;border:none;font-size:12px;font-weight:bold;cursor:pointer}
+.b1{background:rgba(0,238,102,.15);color:#0e6}
+.b2{background:rgba(255,68,68,.15);color:#f44}
+.b3{background:rgba(68,204,255,.15);color:#4cf}
+.b4{background:#1e1e2e;color:#888}
+.empty{text-align:center;color:#444;padding:40px;font-size:13px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:999;padding:16px}
+.ov.open{display:flex}
+.modal{background:#1a1a26;border:1px solid #333;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:bold;margin-bottom:16px;color:#f5c800}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:11px;font-weight:bold;text-transform:uppercase;color:#555;margin-bottom:4px}
+.f input,.f select,.f textarea{width:100%;padding:10px;background:#000;border:1.5px solid #333;border-radius:8px;color:#fff;font-size:14px;font-family:Arial}
+.f textarea{min-height:60px;resize:none}
+.mbtns{display:flex;gap:8px;margin-top:16px}
+.bS{flex:2;padding:12px;background:#f5c800;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer}
+.bC{flex:1;padding:12px;background:#1e1e2e;color:#888;border:1px solid #333;border-radius:8px;font-size:14px;cursor:pointer}
+.pcard{background:#1a1a26;border:1px solid #2a2a3a;border-radius:12px;padding:14px;margin-bottom:10px}
+.codes{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.code{padding:3px 8px;border-radius:4px;font-size:10px;font-family:monospace;font-weight:bold}
+.libre{background:#1e2e1e;color:#0e6;border:1px solid #0e6}
+.usado{background:#2e1e1e;color:#f44;border:1px solid #f44}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a26;border:1px solid #333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
+#toast.show{opacity:1}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: 'AIzaSyBsnQ3pRx0AS0n3AEr0jp8atCbVlQIuyYQ',
+  authDomain: 'pintorapp-6d480.firebaseapp.com',
+  databaseURL: 'https://pintorapp-6d480-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'pintorapp-6d480',
+  storageBucket: 'pintorapp-6d480.firebasestorage.app',
+  messagingSenderId: '798799179968',
+  appId: '1:798799179968:web:14ab31b03e17b8b041bd25'
+});
+
+function checkActivationCode(code) {
+  if (!code || code.length < 5) {
+    document.getElementById('act-err').style.display = 'block';
+    return;
+  }
+  var btn = document.getElementById('act-btn');
+  btn.textContent = 'Verificant...';
+  btn.disabled = true;
+  var db = firebase.database();
+  db.ref('pintorapp/packs').once('value', function(snap) {
+    var packs = snap.val() || {};
+    var found = false, foundPid = null, foundCode = null;
+    Object.keys(packs).forEach(function(pid) {
+      var pk = packs[pid];
+      if (!pk.codigos) return;
+      Object.keys(pk.codigos).forEach(function(storedCode) {
+        // Compare ignoring dashes and case
+        var normalStored = storedCode.replace(/-/g,'').toUpperCase();
+        var normalInput = code.replace(/-/g,'').toUpperCase();
+        if (normalStored === normalInput && pk.codigos[storedCode].estado === 'libre') {
+          found = true; foundPid = pid; foundCode = storedCode;
+        }
+      });
+    });
+    if (found) {
+      db.ref('pintorapp/packs/'+foundPid+'/codigos/'+(foundCode||code)).update({estado:'activo',activat:new Date().toISOString()});
+      localStorage.setItem('pintor_activated', code);
+      document.getElementById('activation-screen').style.display = 'none';
+      document.getElementById('setup-screen').style.display = 'flex';
+    } else {
+      document.getElementById('act-err').style.display = 'block';
+      btn.textContent = 'Activar app';
+      btn.disabled = false;
+    }
+  });
+}
+</script>
+</head>
+<body>
+<!-- ACTIVATION SCREEN -->
+<div id="activation-screen" style="min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:white;border-radius:20px;padding:32px 24px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:52px;margin-bottom:12px">🖌</div>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;color:#0f172a;margin-bottom:6px">PintorApp</h1>
+    <p style="color:#64748b;font-size:13px;margin-bottom:24px">Introdueix el codi d'activació que t'ha donat<br><strong style="color:#003d8f">La Botiga del Robert</strong></p>
+    <input type="text" id="act-code" placeholder="XXXX-XXXX-XX" maxlength="12"
+      style="width:100%;padding:14px;border:2px solid #e2e8f0;border-radius:10px;font-size:20px;text-align:center;letter-spacing:3px;font-family:monospace;background:#f8fafc;text-transform:uppercase;margin-bottom:8px">
+    <div id="act-err" style="color:#ef4444;font-size:13px;margin-bottom:10px;display:none">Codi incorrecte. Contacta amb Robert.</div>
+    <button id="act-btn" onclick="checkActivationCode(document.getElementById('act-code').value.trim().toUpperCase())" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:16px">Activar app</button>
+    <div style="border-top:2px solid #f5c800;padding-top:14px;margin-top:4px">
+      <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Patrocinat per</span>
+      <div style="font-size:14px;color:#003d8f;font-weight:700;margin-top:2px">🖌 La Botiga del Robert · Lleida</div>
+      <a href="tel:973000392" style="display:inline-block;margin-top:8px;background:#f5c800;color:#003d8f;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none">📞 973 00 03 92</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="pgLogin">
+  <div class="loginBox">
+    <div style="font-size:40px;margin-bottom:8px">CONSOLA</div>
+    <h1>CONSOLA MASTER</h1>
+    <p>PintorApp - Panel de control</p>
+    <input type="password" id="iClave" placeholder="Clave secreta">
+    <button class="btnY" onclick="login()">ENTRAR</button>
+    <div id="err">Clave incorrecta</div>
+  </div>
+</div>
+
+<div id="pgMain">
+  <div class="topbar">
+    <h2>CONSOLA MASTER</h2>
+    <button class="btnR" onclick="logout()">Salir</button>
+  </div>
+  <div class="tabs">
+    <button class="tab sel" id="t1" onclick="tab(1)">Pintores</button>
+    <button class="tab" id="t2" onclick="tab(2)">Packs</button>
+  </div>
+  <div class="wrap" id="v1">
+    <div class="hdr"><span>Pintores registrados</span><button class="btnG" onclick="openP(null)">+ Nuevo pintor</button></div>
+    <div id="lP"><div class="empty">Conectando...</div></div>
+  </div>
+  <div class="wrap" id="v2" style="display:none">
+    <div class="hdr"><span>Packs de licencias</span><button class="btnG" onclick="openPk()">+ Nuevo pack</button></div>
+    <div id="lK"><div class="empty">Sin packs</div></div>
+  </div>
+</div>
+
+<div class="ov" id="mP">
+  <div class="modal">
+    <h3 id="mPt">Nuevo pintor</h3>
+    <div class="f"><label>Nombre</label><input type="text" id="pN" placeholder="Joan Pintors..."></div>
+    <div class="f"><label>Telefono</label><input type="tel" id="pT" placeholder="612 345 678"></div>
+    <div class="f"><label>Poblacion</label><input type="text" id="pO" placeholder="Lleida..."></div>
+    <div class="f"><label>Especialidad</label>
+      <select id="pE">
+        <option>Pintura interior i exterior</option><option>Pintura industrial</option>
+        <option>Decoracio i pintura</option><option>Pintura i reformes</option><option>Pintor autonom</option>
+      </select>
+    </div>
+    <div class="f"><label>Color</label>
+      <select id="pC"><option value="#2563eb">Azul</option><option value="#7c3aed">Morado</option>
+        <option value="#059669">Verde</option><option value="#dc2626">Rojo</option><option value="#d97706">Naranja</option>
+      </select>
+    </div>
+    <div class="f"><label>Caducidad</label>
+      <select id="pD"><option value="3">3 meses</option><option value="6">6 meses</option>
+        <option value="12" selected>12 meses</option><option value="24">24 meses</option><option value="0">Sin limite</option>
+      </select>
+    </div>
+    <div class="f"><label>Mensaje</label><textarea id="pM" placeholder="Bienvenido..."></textarea></div>
+    <div class="mbtns"><button class="bC" onclick="closeP()">Cancelar</button><button class="bS" onclick="saveP()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="ov" id="mMsg">
+  <div class="modal">
+    <h3 style="color:#4cf">Mensaje</h3>
+    <div class="f"><label>Pintor</label><input type="text" id="mN" disabled style="opacity:.5"></div>
+    <div class="f"><label>Mensaje</label><textarea id="mT" placeholder="Aviso..."></textarea></div>
+    <div class="mbtns"><button class="bC" onclick="closeMsg()">Cancelar</button><button class="bS" onclick="sendMsg()" style="background:#4cf;color:#000">Enviar</button></div>
+  </div>
+</div>
+
+<div class="ov" id="mK">
+  <div class="modal">
+    <h3>Nuevo pack</h3>
+    <div class="f"><label>Cliente</label><input type="text" id="kC" placeholder="La Botiga del Robert..."></div>
+    <div class="f"><label>Telefono</label><input type="tel" id="kT" placeholder="973 000 392"></div>
+    <div class="f"><label>Licencias</label><select id="kN"><option value="10">10</option><option value="20">20</option><option value="30">30</option></select></div>
+    <div class="f"><label>Duracion</label><select id="kD"><option value="12" selected>12 meses</option><option value="6">6 meses</option><option value="24">24 meses</option></select></div>
+    <div class="mbtns"><button class="bC" onclick="closePk()">Cancelar</button><button class="bS" onclick="savePk()">Generar</button></div>
+  </div>
+</div>
+
+
+<script>
+var K='NachiDacia2342';
+var W='34609321585';
+var P={};var PK={};var eId=null;var mId=null;var db=null;
+
+function login(){
+  var v=document.getElementById('iClave').value;
+  if(v===K){
+    document.getElementById('pgLogin').style.display='none';
+    document.getElementById('pgMain').style.display='block';
+    startFB();
+  }else{
+    document.getElementById('err').style.display='block';
+    document.getElementById('iClave').value='';
+  }
+}
+document.getElementById('iClave').addEventListener('keydown',function(e){if(e.key==='Enter')login();});
+
+function logout(){
+  document.getElementById('pgMain').style.display='none';
+  document.getElementById('pgLogin').style.display='flex';
+  document.getElementById('iClave').value='';
+}
+
+function startFB(){
+  try{
+    if(!firebase.apps.length)firebase.initializeApp({
+      apiKey:'AIzaSyBsnQ3pRx0AS0n3AEr0jp8atCbVlQIuyYQ',
+      authDomain:'pintorapp-6d480.firebaseapp.com',
+      databaseURL:'https://pintorapp-6d480-default-rtdb.europe-west1.firebasedatabase.app',
+      projectId:'pintorapp-6d480',
+      storageBucket:'pintorapp-6d480.firebasestorage.app',
+      messagingSenderId:'798799179968',
+      appId:'1:798799179968:web:14ab31b03e17b8b041bd25'
+    });
+    db=firebase.database();
+    db.ref('pintorapp/pintores').on('value',function(s){P=s.val()||{};showP();});
+    db.ref('pintorapp/packs').on('value',function(s){PK=s.val()||{};});
+  }catch(e){document.getElementById('lP').innerHTML='<div class="empty">Error: '+e.message+'</div>';}
+}
+
+function tab(n){
+  document.getElementById('v1').style.display=n===1?'block':'none';
+  document.getElementById('v2').style.display=n===2?'block':'none';
+  document.getElementById('t1').className='tab'+(n===1?' sel':'');
+  document.getElementById('t2').className='tab'+(n===2?' sel':'');
+  if(n===2)showPK();
+}
+
+function st(p){
+  if(!p.activo)return'ina';
+  if(p.caducidad_meses>0&&p.created_at){
+    var e=new Date(p.created_at);e.setMonth(e.getMonth()+parseInt(p.caducidad_meses));
+    if(new Date()>e)return'exp';
+  }
+  return'act';
+}
+
+function showP(){
+  var l=document.getElementById('lP');
+  var ks=Object.keys(P);
+  if(!ks.length){l.innerHTML='<div class="empty">Sin pintores</div>';return;}
+  var h='';
+  ks.forEach(function(id){
+    var p=P[id];var s=st(p);
+    var ini=(p.nom||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
+    var sl=s==='act'?'ACTIVO':s==='exp'?'CADUCADO':'INACTIVO';
+    var sc=s==='act'?'on':'off';
+    var tb=s==='act'?
+      '<button class="b2" onclick="tog(''+id+'')">Desactivar</button>':
+      '<button class="b1" onclick="tog(''+id+'')">Activar</button>';
+    h+='<div class="card '+s+'">'+
+      '<div class="ctop">'+
+        '<div class="av" style="background:'+(p.color||'#2563eb')+'">'+ini+'</div>'+
+        '<div style="flex:1"><div class="cn">'+(p.nom||'Sin nombre')+'</div>'+
+        '<div class="cs">'+(p.esp||'Pintor')+' - '+(p.pob||'-')+'</div></div>'+
+        '<span class="bdg '+sc+'">'+sl+'</span>'+
+      '</div>'+
+      '<div class="cm">Tel: <b>'+(p.tel||'-')+'</b> Cad: <b>'+(p.caducidad_meses>0?p.caducidad_meses+'m':'inf')+'</b></div>'+
+      (p.mensaje?'<div style="background:#0a0a1f;border-left:2px solid #4cf;padding:6px;font-size:12px;color:#4cf;margin-bottom:8px">'+p.mensaje+'</div>':'')+
+      '<div class="cbtns">'+tb+
+        '<button class="b3" onclick="openMsg(''+id+'')">Mensaje</button>'+
+        '<button class="b4" onclick="openP(''+id+'')">Editar</button>'+
+        '<button class="b2" onclick="delP(''+id+'')">Borrar</button>'+
+      '</div></div>';
+  });
+  l.innerHTML=h;
+}
+
+function tog(id){if(!db)return;db.ref('pintorapp/pintores/'+id).update({activo:!P[id].activo});toast('Hecho');}
+function delP(id){if(!confirm('Borrar?'))return;if(db)db.ref('pintorapp/pintores/'+id).remove();}
+
+function openP(id){
+  eId=id;
+  document.getElementById('mPt').textContent=id?'Editar pintor':'Nuevo pintor';
+  if(id&&P[id]){var p=P[id];
+    document.getElementById('pN').value=p.nom||'';
+    document.getElementById('pT').value=p.tel||'';
+    document.getElementById('pO').value=p.pob||'';
+    document.getElementById('pE').value=p.esp||'Pintura interior i exterior';
+    document.getElementById('pC').value=p.color||'#2563eb';
+    document.getElementById('pD').value=p.caducidad_meses||12;
+    document.getElementById('pM').value=p.mensaje||'';
+  }else{
+    ['pN','pT','pO','pM'].forEach(function(x){document.getElementById(x).value='';});
+  }
+  document.getElementById('mP').className='ov open';
+}
+function closeP(){document.getElementById('mP').className='ov';}
+function saveP(){
+  var n=document.getElementById('pN').value.trim();
+  if(!n){toast('Escribe el nombre');return;}
+  if(!db){toast('Sin Firebase');return;}
+  var id=eId||'pintor_'+Date.now();
+  var ex=(eId&&P[eId])||{};
+  db.ref('pintorapp/pintores/'+id).set({
+    nom:n,tel:document.getElementById('pT').value.trim(),
+    pob:document.getElementById('pO').value.trim(),
+    esp:document.getElementById('pE').value,
+    color:document.getElementById('pC').value,
+    caducidad_meses:parseInt(document.getElementById('pD').value),
+    mensaje:document.getElementById('pM').value.trim(),
+    activo:ex.activo!==undefined?ex.activo:true,
+    created_at:ex.created_at||new Date().toISOString(),
+    num_presupuestos:ex.num_presupuestos||0
+  });
+  closeP();toast(eId?'Actualizado':'Pintor anadido');
+}
+
+function openMsg(id){
+  mId=id;
+  document.getElementById('mN').value=P[id].nom||'';
+  document.getElementById('mT').value=P[id].mensaje||'';
+  document.getElementById('mMsg').className='ov open';
+}
+function closeMsg(){document.getElementById('mMsg').className='ov';}
+function sendMsg(){
+  if(!db)return;
+  db.ref('pintorapp/pintores/'+mId).update({mensaje:document.getElementById('mT').value.trim()});
+  closeMsg();toast('Mensaje enviado');
+}
+
+function openPk(){document.getElementById('kC').value='';document.getElementById('kT').value='';document.getElementById('mK').className='ov open';}
+function closePk(){document.getElementById('mK').className='ov';}
+function savePk(){
+  var c=document.getElementById('kC').value.trim();
+  if(!c){toast('Escribe el cliente');return;}
+  if(!db){toast('Sin Firebase');return;}
+  var n=parseInt(document.getElementById('kN').value);
+  var d=parseInt(document.getElementById('kD').value);
+  var cs={};
+  for(var i=0;i<n;i++){var x=gc();cs[x]={estado:'libre',creado:new Date().toISOString(),duracion_meses:d};}
+  db.ref('pintorapp/packs/pack_'+Date.now()).set({
+    cliente:c,tel:document.getElementById('kT').value.trim(),
+    num_total:n,duracion_meses:d,creado:new Date().toISOString(),codigos:cs
+  });
+  closePk();toast('Pack con '+n+' codigos generado');tab(2);
+}
+
+function gc(){
+  var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r='';
+  for(var i=0;i<10;i++){if(i===4||i===8)r+='-';r+=c[Math.floor(Math.random()*c.length)];}
+  return r;
+}
+
+function showPK(){
+  var l=document.getElementById('lK');
+  var ks=Object.keys(PK);
+  if(!ks.length){l.innerHTML='<div class="empty">Sin packs</div>';return;}
+  var h='';
+  ks.forEach(function(pid){
+    var pk=PK[pid];var cs=pk.codigos||{};var cks=Object.keys(cs);
+    var lib=cks.filter(function(k){return cs[k].estado==='libre';});
+    var ch=cks.map(function(c){return'<span class="code '+(cs[c].estado==='libre'?'libre':'usado')+'">'+c+'</span>';}).join('');
+    h+='<div class="pcard"><div style="font-weight:bold;color:#f5c800;margin-bottom:6px">'+pk.cliente+' - '+lib.length+'/'+cks.length+' libres</div>'+
+      '<div class="codes">'+ch+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:8px">'+
+        '<button class="b3" onclick="copyLib(''+pid+'')">Copiar libres</button>'+
+        '<button class="b2" onclick="delPk(''+pid+'')">Borrar</button>'+
+      '</div></div>';
+  });
+  l.innerHTML=h;
+}
+
+function copyLib(pid){
+  var pk=PK[pid];var cs=pk.codigos||{};
+  var lib=Object.keys(cs).filter(function(k){return cs[k].estado==='libre';});
+  if(!lib.length){toast('Sin libres');return;}
+  var txt='CODIGOS PINTORAPP - '+pk.cliente+'
+';
+  lib.forEach(function(c,i){txt+=(i+1)+'. '+c+'
+';});
+  txt+='Validos '+pk.duracion_meses+' meses';
+  navigator.clipboard.writeText(txt).then(function(){toast(lib.length+' codigos copiados');});
+}
+
+function delPk(pid){
+  if(!confirm('Borrar pack?'))return;
+  if(db)db.ref('pintorapp/packs/'+pid).remove();
+  toast('Pack borrado');showPK();
+}
+
+function toast(m){
+  var t=document.getElementById('toast');
+  t.textContent=m;t.className='show';
+  setTimeout(function(){t.className='';},2500);
+}
+</script>
+</body>
+</html>
